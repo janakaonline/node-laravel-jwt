@@ -1,168 +1,177 @@
-<!doctype html>
+@extends('layouts.app')
 
-<html lang="en">
+@section('content')
 
-<head>
+
+
+    <h1>Socket Connection Status: <span id="connection"></span></h1>
+
+    <h1>Login User Id: <span id="userid"></span></h1>
+
+    <h1>Login User Email: <span id="email"></span></h1>
+
+    <h1>Public Message: <span id="receive-my-message"></span></h1>
+
+    <h1>Remaining time: <span id="remaining-time"></span></h1>
+
+    <h1>Add time: <button class="add-mins" data-mins="5">5 mins</button> <button  class="add-mins" data-mins="10">10 mins</button></h1>
 
     <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.js"></script>
 
-</head>
+    <script type="text/javascript">
 
-<body>
+        $(document).ready(function () {
 
+            socketIOConnectionUpdate('Requesting JWT Token from Laravel');
 
-<h1>Socket Connection Status: <span id="connection"></span></h1>
 
-<h1>Login User Id: <span id="userid"></span></h1>
+            $.ajax({
 
-<h1>Login User Email: <span id="email"></span></h1>
+                url: 'http://dev.com/token'
 
-<h1>Public Message: <span id="receive-my-message"></span></h1>
+            }).fail(function (jqXHR, textStatus, errorThrown) {
 
+                socketIOConnectionUpdate('Something is wrong on ajax: ' + textStatus);
 
-<script type="text/javascript">
+            }).done(function (result, textStatus, jqXHR) {
 
-    $(document).ready(function () {
 
-        socketIOConnectionUpdate('Requesting JWT Token from Laravel');
+                /*
 
+                 make connection with localhost 3000
 
-        $.ajax({
+                 */
 
-            url: 'http://dev.com/token'
+                var socket = io.connect('http://dev.com:3000');
 
-        }).fail(function (jqXHR, textStatus, errorThrown) {
 
-            socketIOConnectionUpdate('Something is wrong on ajax: ' + textStatus);
+                /*
 
-        }).done(function (result, textStatus, jqXHR) {
+                 connect with socket io
 
+                 */
 
-            /*
+                socket.on('connect', function () {
 
-             make connection with localhost 3000
+                    socketIOConnectionUpdate('Connected to SocketIO, Authenticating')
 
-             */
+                    socket.emit('authenticate', {token: result.token});
 
-            var socket = io.connect('http://dev.com:3000');
 
+                    socket.emit('public-my-message', {'msg': 'Hi, Every One.'});
 
-            /*
+                });
 
-             connect with socket io
 
-             */
 
-            socket.on('connect', function () {
 
-                socketIOConnectionUpdate('Connected to SocketIO, Authenticating')
+                /*
 
-                socket.emit('authenticate', {token: result.token});
+                 If token authenticated successfully then here will get message
 
+                 */
 
-                socket.emit('public-my-message', {'msg': 'Hi, Every One.'});
+                socket.on('authenticated', function () {
 
-            });
+                    socketIOConnectionUpdate('Authenticated');
 
+                });
 
-            /*
 
-             If token authenticated successfully then here will get message
+                /*
 
-             */
+                 If token unauthorized then here will get message
 
-            socket.on('authenticated', function () {
+                 */
 
-                socketIOConnectionUpdate('Authenticated');
+                socket.on('unauthorized', function (data) {
 
-            });
+                    socketIOConnectionUpdate('Unauthorized, error msg: ' + data.message);
 
+                });
 
-            /*
 
-             If token unauthorized then here will get message
+                /*
 
-             */
+                 If disconnect socketio then here will get message
 
-            socket.on('unauthorized', function (data) {
+                 */
 
-                socketIOConnectionUpdate('Unauthorized, error msg: ' + data.message);
+                socket.on('disconnect', function () {
 
-            });
+                    socketIOConnectionUpdate('Disconnected');
 
+                });
 
-            /*
 
-             If disconnect socketio then here will get message
+                /*
 
-             */
+                 Get Userid by server side emit
 
-            socket.on('disconnect', function () {
+                 */
 
-                socketIOConnectionUpdate('Disconnected');
+                socket.on('user-id', function (data) {
 
-            });
+                    $('#userid').html(data);
 
+                });
 
-            /*
 
-             Get Userid by server side emit
+                /*
 
-             */
+                 Get Email by server side emit
 
-            socket.on('user-id', function (data) {
+                 */
 
-                $('#userid').html(data);
+                socket.on('user-email', function (data) {
 
-            });
+                    $('#email').html(data);
 
+                });
 
-            /*
+                socket.on('tictoc', function (data) {
 
-             Get Email by server side emit
+                    $('#remaining-time').html(data);
 
-             */
+                });
 
-            socket.on('user-email', function (data) {
 
-                $('#email').html(data);
+                /*
 
-            });
+                 Get receive my message by server side emit
 
+                 */
 
-            /*
+                socket.on('receive-my-message', function (data) {
 
-             Get receive my message by server side emit
+                    $('#receive-my-message').html(data);
 
-             */
+                });
 
-            socket.on('receive-my-message', function (data) {
-
-                $('#receive-my-message').html(data);
+                $('.add-mins').click(function(e){
+                    e.preventDefault();
+                    socket.emit('add-mins', {mins: $(this).data('mins')});
+                });
 
             });
 
         });
 
-    });
 
+        /*
 
-    /*
+         Function for print connection message
 
-     Function for print connection message
+         */
 
-     */
+        function socketIOConnectionUpdate(str) {
 
-    function socketIOConnectionUpdate(str) {
+            $('#connection').html(str);
 
-        $('#connection').html(str);
+        }
 
-    }
+    </script>
 
-</script>
-
-</body>
-
-</html>
+@endsection
